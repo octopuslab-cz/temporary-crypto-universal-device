@@ -23,11 +23,26 @@ pinout = set_pinout()
 print("CRYPTO UNIVERSAL DEVICE - HW basic test")
 print("--- i2c keypad expander16 init >")
 
-KP_ADDRESS = 0x20 
+KP_ADDRESS = 0x25
 KP_DELAY = 250
+KP_INTERRUPT = 39
 
 i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=100000)
 kp = Keypad16(i2c, KP_ADDRESS, False)
+
+
+def kp_irq(pin):
+    global lastKeyPress
+    if lastKeyPress + KP_DELAY < ticks_ms():
+        print("Too early")
+        return
+
+    print("Key pressed")
+    lastKeyPress = ticks_ms()
+
+
+kpirq = Pin(KP_INTERRUPT, Pin.IN)
+kpirq.irq(kp_irq, Pin.IRQ_FALLING)
 
 lastKeyPress = 0
 keyDelay = KP_DELAY
@@ -38,7 +53,7 @@ print("--- spi.TFT 128x160 init >")
 # spi = SPI(1, baudrate=10000000, polarity=1, phase=0, sck=Pin(pinout.SPI_CLK_PIN), mosi=Pin(pinout.SPI_MOSI_PIN))
 # ss = Pin(pinout.SPI_CS0_PIN, Pin.OUT)
 cs = 26  # Pin(26, Pin.OUT) #R_D2
-dc = 2   # Pin(2, Pin.OUT)  #L_D2
+dc = 25  # Pin(25, Pin.OUT) #R_D1
 rst = 27 # Pin(27, Pin.OUT) #PWM1(17) > DEv3(27)
 
 print("--- TFT 128x160px init >")
@@ -172,8 +187,8 @@ while True:
         print(e)
         key = None
 
-    if key and time.ticks_ms() > lastKeyPress+keyDelay:
-        lastKeyPress = time.ticks_ms()
+    if key and ticks_ms() > lastKeyPress+keyDelay:
+        lastKeyPress = ticks_ms()
         print(key)
         # ToDo action for "*"
         if key == '#': # Enter
