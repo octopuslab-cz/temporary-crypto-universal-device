@@ -14,7 +14,7 @@ from lib.rgb import color565
 from assets.sysfont import sysfont
 from assets.terminalfont import terminalfont
 from uQR import QRCode
-from components.i2c_keypad import Keypad16
+from keypad.i2ckeypad import I2CKeypad
 from components.rfid import PN532_UART
 
 pinout = set_pinout()
@@ -27,7 +27,7 @@ KP_DELAY = 250
 KP_INTERRUPT = 39
 
 i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=400000)
-kp = Keypad16(i2c, KP_ADDRESS, False)
+kp = I2CKeypad(i2c, KP_ADDRESS, 16)
 
 
 def kp_irq(pin):
