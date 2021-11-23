@@ -5,7 +5,6 @@
 # 2021/11
 
 from time import sleep, sleep_ms, ticks_ms
-from math import pi
 from machine import SPI, Pin, UART, I2C
 from utils.octopus_lib import w # need connection for FTP
 from utils.octopus_decor import octopus_debug
