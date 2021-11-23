@@ -23,11 +23,11 @@ pinout = set_pinout()
 print("CRYPTO UNIVERSAL DEVICE - HW basic test")
 print("--- i2c keypad expander16 init >")
 
+i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=400000)
+
 KP_ADDRESS = 0x25
 KP_DELAY = 250
 KP_INTERRUPT = 39
-
-i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=400000)
 kp = I2CKeypad(i2c, KP_ADDRESS, 16)
 
 
