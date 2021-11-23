@@ -27,7 +27,7 @@ KP_ADDRESS = 0x25
 KP_DELAY = 250
 KP_INTERRUPT = 39
 
-i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=100000)
+i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=400000)
 kp = Keypad16(i2c, KP_ADDRESS, False)
 
 
