@@ -16,6 +16,7 @@ from assets.terminalfont import terminalfont
 from uQR import QRCode
 from keypad.i2ckeypad import I2CKeypad
 from components.rfid import PN532_UART
+import _thread
 
 pinout = set_pinout()
 
@@ -30,22 +31,8 @@ i2c = I2C(0, scl=Pin(pinout.I2C_SCL_PIN), sda=Pin(pinout.I2C_SDA_PIN), freq=4000
 kp = I2CKeypad(i2c, KP_ADDRESS, 16)
 
 
-def kp_irq(pin):
-    global lastKeyPress
-    if lastKeyPress + KP_DELAY < ticks_ms():
-        print("Too early")
-        return
-
-    print("Key pressed")
-    lastKeyPress = ticks_ms()
-
-
-kpirq = Pin(KP_INTERRUPT, Pin.IN)
-kpirq.irq(kp_irq, Pin.IRQ_FALLING)
-
-lastKeyPress = 0
-keyDelay = KP_DELAY
-displayNum = ""
+COIN_INTERRUPT = 35
+coin = Pin(COIN_INTERRUPT, Pin.IN)
 
 
 print("--- spi.TFT 128x160 init >")
@@ -140,6 +127,48 @@ def test_main():
     sleep(1)
 
 
+def read_keypad(kp):
+    global coins
+    print("Starting Keypad reader thread")
+    displayNum = ""
+    lastKeyPress = 0
+    keyDelay = KP_DELAY
+
+    while True:
+        try:
+            key = kp.getKey()
+        except OSError as e:
+            print("Error while get key")
+            print(e)
+            key = None
+
+        if key and ticks_ms() > lastKeyPress+keyDelay:
+            lastKeyPress = ticks_ms()
+            print(key)
+            # ToDo action for "*"
+            if key == '#': # Enter
+                print("final number: ", displayNum)
+            else:
+                displayNum += str(key)
+            #d7.show((8-len(displayNum))*" " + displayNum)
+
+            if key == 'C': # Clear
+                displayNum = ""
+                coins = 0
+
+
+coins = 0
+coin_lastint = 0
+def coin_interrupt(pin):
+    global coin_lastint
+    global coins
+    if coin_lastint + 28 > ticks_ms():
+        return
+
+    coin_lastint = ticks_ms()
+    coins+=10
+
+
 print("color-fill test")
 tft.fill(color565(255,0,0))
 sleep(0.3)
@@ -159,7 +188,7 @@ tft.text((6,90), "Agama21", TFT.MAROON, terminalfont,2)
 #box(3,12,"23.6" + chr(223)+"C",TFT.YELLOW,"temperature")
 box(posx,12,"-",TFT.YELLOW,"input box")
 box(posx+78,12,0,TFT.GREEN,"counter")
-box(posx,12+37,567,TFT.YELLOW,"label 3")
+box(posx,12+37,0,TFT.YELLOW,"Coins")
 box(posx+78,12+37,"LNURL",TFT.YELLOW,"BTC")
 
 
@@ -175,34 +204,16 @@ print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
 # Configure PN532 to communicate with MiFare cards
 pn532.SAM_configuration()
 
+print("Setting up COIN acceptor interrupt")
+coin.irq(coin_interrupt, Pin.IRQ_RISING)
 
 print("Waiting for KEY-PAD - RFID/NFC card...")
+_thread.start_new_thread(read_keypad, [kp])
+
 j = 0
 while True:
-    try:
-        key = kp.getKey()
-    except OSError as e:
-        print("Error while get key")
-        print(e)
-        key = None
-
-    if key and ticks_ms() > lastKeyPress+keyDelay:
-        lastKeyPress = ticks_ms()
-        print(key)
-        # ToDo action for "*"
-        if key == '#': # Enter
-            print("final number: ", displayNum)
-        else:    
-           displayNum += str(key)
-           #d7.show((8-len(displayNum))*" " + displayNum)
-
-        if key == 'C': # Clear
-           displayNum = ""
-           #d7.show(displayNum)
-    
-    
     # Check if a card is available to read
-    uid = pn532.read_passive_target(timeout=0.5)
+    uid = pn532.read_passive_target(timeout=1)
     print(".", end="")
     if uid is not None:
         card_id = ""
@@ -215,7 +226,7 @@ while True:
         
     pn532.power_down()
     box(3+78,12,str(j),TFT.GREEN,"counter")
+    box(posx,12+37,coins,TFT.YELLOW,"Coins")
     j += 1
     sleep(0.2)
-
 
